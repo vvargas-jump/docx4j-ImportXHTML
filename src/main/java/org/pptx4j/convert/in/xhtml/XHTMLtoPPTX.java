@@ -64,6 +64,7 @@ import org.docx4j.dml.Graphic;
 import org.docx4j.dml.GraphicData;
 import org.docx4j.model.properties.Property;
 import org.docx4j.model.properties.PropertyFactory;
+import org.docx4j.model.properties.paragraph.AbstractParagraphProperty;
 import org.docx4j.model.properties.run.AbstractRunProperty;
 import org.docx4j.openpackaging.exceptions.Docx4JException;
 import org.docx4j.openpackaging.packages.PresentationMLPackage;
@@ -386,11 +387,10 @@ public class XHTMLtoPPTX {
     		listHelper.addNumbering(paragraph, e, localSettings.getCssMap());	                	
     	}
 
-    	// TODO
-		// addParagraphProperties();
+    	addParagraphProperties(paragraph, getCascadedProperties(blockBox.getStyle()));
 
         settings.setCssMap(null);
-        
+
         if(settings.isInTableCell()) {
             return paragraph;
         } else {
@@ -503,6 +503,33 @@ public class XHTMLtoPPTX {
                 }
             }
         }
+    }
+
+    private void addParagraphProperties(CTTextParagraph paragraph, Map<String, PropertyValue> cssMap){
+      for (Object o : cssMap.keySet()) {
+
+        String cssName = (String)o;
+        PropertyValue cssValue = cssMap.get(cssName);
+
+        Property p = PropertyFactory.createPropertyFromCssName(cssName, new DomCssValueAdaptor(cssValue));
+        if (null == paragraph.getPPr()) {
+          paragraph.setPPr(DML_OBJECT_FACTORY.createCTTextParagraphProperties());
+        }
+        if (p!=null) {
+          if (p instanceof AbstractParagraphProperty) {
+            ((AbstractParagraphProperty)p).set(paragraph);
+          } else {
+            // try specific method
+            p = PropertyFactory.createPropertyFromCssNameForPPr(cssName,  new DomCssValueAdaptor(cssValue));
+            if (p!=null) {
+              if (p instanceof AbstractParagraphProperty) {
+                ((AbstractParagraphProperty)p).set(paragraph);
+              }
+            }
+          }
+        }
+
+      }
     }
 
     private CTHyperlink createHyperlink(String url) {
